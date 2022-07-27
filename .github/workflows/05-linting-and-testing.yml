@@ -21,7 +21,7 @@ jobs:
         python -m pip install -r requirements.txt
     - name: Run linting tests
       run: | 
-        flake8 --ignore=F841 src/model/
-    - name: Run pytest
+        python -m flake8 --ignore=F841 src/model/
+    - name: Run unit tests
       run: |
         python -m pytest tests/
