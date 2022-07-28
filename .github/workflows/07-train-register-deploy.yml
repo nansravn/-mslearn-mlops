@@ -46,9 +46,7 @@ jobs:
         creds: ${{secrets.AZURE_CREDENTIALS}}
     - name: Run the ML training job
       run: |
-        JOB_NAME=${{ needs.train.outputs.modelname }}
-        az ml model create --name "diabetes-model" --type "mlflow_model" --path "azureml://jobs/$JOB_NAME/outputs/artifacts/model"
-        
+        az ml model create --name "diabetes-model" --type "mlflow_model" --path "azureml://jobs/${{ needs.train.outputs.modelname }}/outputs/artifacts/model"
   deploy:
     runs-on: ubuntu-latest
     environment:
