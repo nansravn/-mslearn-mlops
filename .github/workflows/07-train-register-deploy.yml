@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: dev
+    outputs:
+      model_name: ${{ steps.train_step.outputs.model_name }}
     steps:
     - name: Check out repo
       uses: actions/checkout@main
@@ -20,21 +22,16 @@ jobs:
       with:
         creds: ${{secrets.AZURE_CREDENTIALS}}
     - name: Run the ML training job
-      id: train-model
+      id: train_step
       run: |
         JOB_NAME=$(az ml job create --file ./src/job.yml --workspace-name "mlw-dev-mlops" --resource-group "rg-dev-mlops" | jq '.name' | tr -d '"')
         echo $JOB_NAME
-        echo "::set-output name=modelname::$JOB_NAME"
-    - name: output
-      run: |
-        echo ${{ steps.train-model.outputs.modelname }}
-        sleep 30
+        echo "::set-output name=model_name::$JOB_NAME"
   register:
     runs-on: ubuntu-latest
     environment:
       name: prod
-    needs:
-      [train]
+    needs: train
     steps:
     - name: Check out repo
       uses: actions/checkout@main
@@ -46,15 +43,14 @@ jobs:
         creds: ${{secrets.AZURE_CREDENTIALS}}
     - name: Model registration 
       run: |
-        JOB_NAME=${{ steps.train-model.outputs.modelname }}
+        JOB_NAME=${{ needs.train.outputs.model_name }}
         echo $JOB_NAME
-        az ml model create --name "diabetes-model" --type "mlflow_model" --path "azureml://jobs/${{ steps.train-model.outputs.modelname }}/outputs/artifacts/model" --workspace-name "mlw-dev-mlops" --resource-group "rg-dev-mlops"
+        az ml model create --name "diabetes-model" --type "mlflow_model" --path "azureml://jobs/${{ needs.train.outputs.model_name }}/outputs/artifacts/model" --workspace-name "mlw-dev-mlops" --resource-group "rg-dev-mlops"
   deploy:
     runs-on: ubuntu-latest
     environment:
       name: prod
-    needs:
-      [register]
+    needs: register
     steps:
     - name: Check out repo
       uses: actions/checkout@main
