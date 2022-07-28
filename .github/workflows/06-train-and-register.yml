@@ -1,0 +1,44 @@
+name: Train and register the diabetes ML model
+
+on:
+  push:
+    branches:    
+      - 'main'
+    paths:
+      - 'src/**'
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    environment:
+      name: dev
+    steps:
+    - name: Check out repo
+      uses: actions/checkout@main
+    - name: Install az ml extension
+      run: az extension add -n ml -y
+    - name: Azure login
+      uses: azure/login@v1
+      with:
+        creds: ${{secrets.AZURE_CREDENTIALS}}
+    - name: Run the ML training job
+      run: |
+        az ml job create --file ./src/job.yml --workspace-name "mlw-dev-mlops" --resource-group "rg-dev-mlops"
+  register:
+    runs-on: ubuntu-latest
+    environment:
+      name: prod
+    needs:
+      [train]
+    steps:
+    - name: Check out repo
+      uses: actions/checkout@main
+    - name: Install az ml extension
+      run: az extension add -n ml -y
+    - name: Azure login
+      uses: azure/login@v1
+      with:
+        creds: ${{secrets.AZURE_CREDENTIALS}}
+    - name: Run the ML training job
+      run: |
+        az ml model list --workspace-name "mlw-dev-mlops" --resource-group "rg-dev-mlops"
