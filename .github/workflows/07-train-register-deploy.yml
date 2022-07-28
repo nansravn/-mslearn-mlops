@@ -27,6 +27,7 @@ jobs:
     - name: output
       run: |
         echo ${{ steps.train-model.outputs.modelname }}
+        sleep 30
   register:
     runs-on: ubuntu-latest
     environment:
