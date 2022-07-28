@@ -22,7 +22,7 @@ jobs:
     - name: Run the ML training job
       id: train-model
       run: |
-        JOB_NAME=$(az ml job create --file ./src/job.yml --workspace-name "mlw-dev-mlops" --resource-group "rg-dev-mlops" --wait | jq '.name' | tr -d '"')
+        JOB_NAME=$(az ml job create --file ./src/job.yml --workspace-name "mlw-dev-mlops" --resource-group "rg-dev-mlops" | jq '.name' | tr -d '"')
         echo "::set-output name=modelname::$JOB_NAME"
     - name: output
       run: |
