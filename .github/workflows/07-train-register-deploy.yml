@@ -1,0 +1,72 @@
+name: Train, register and deploy the diabetes ML model
+
+on:
+  push:
+    branches:    
+      - 'main'
+    paths:
+      - 'src/**'
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    environment:
+      name: dev
+    steps:
+    - name: Check out repo
+      uses: actions/checkout@main
+    - name: Install az ml extension
+      run: az extension add -n ml -y
+    - name: Azure login
+      uses: azure/login@v1
+      with:
+        creds: ${{secrets.AZURE_CREDENTIALS}}
+    - name: Run the ML training job
+      id: train-model
+      run: |
+        JOB_NAME=$(az ml job create --file ./src/job.yml --workspace-name "mlw-dev-mlops" --resource-group "rg-dev-mlops" | jq '.name')
+        echo "::set-output name=modelname::$JOB_NAME"
+    - name: output
+      run: |
+        echo ${{ steps.train-model.outputs.modelname }}
+  register:
+    runs-on: ubuntu-latest
+    environment:
+      name: prod
+    needs:
+      [train]
+    steps:
+    - name: Check out repo
+      uses: actions/checkout@main
+    - name: Install az ml extension
+      run: az extension add -n ml -y
+    - name: Azure login
+      uses: azure/login@v1
+      with:
+        creds: ${{secrets.AZURE_CREDENTIALS}}
+    - name: Run the ML training job
+      run: |
+        JOB_NAME=${{ needs.train.outputs.modelname }}
+        az ml model create --name "diabetes-model" --type "mlflow_model" --path "azureml://jobs/$JOB_NAME/outputs/artifacts/model"
+        
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: prod
+    needs:
+      [register]
+    steps:
+    - name: Check out repo
+      uses: actions/checkout@main
+    - name: Install az ml extension
+      run: az extension add -n ml -y
+    - name: Azure login
+      uses: azure/login@v1
+      with:
+        creds: ${{secrets.AZURE_CREDENTIALS}}
+    - name: Run the ML training job
+      run: |
+        export ENDPOINT_NAME="endpoint-diabetes"
+        export DEPLOYMENT_NAME="diabetes-deployment"
+        az ml online-endpoint create --name $ENDPOINT_NAME -f ./src/online-endpoint.yml
+        az ml online-deployment create --name $DEPLOYMENT_NAME --endpoint $ENDPOINT_NAME -f src/online-deployment.yml --all-traffic
