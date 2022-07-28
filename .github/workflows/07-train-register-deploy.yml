@@ -23,6 +23,7 @@ jobs:
       id: train-model
       run: |
         JOB_NAME=$(az ml job create --file ./src/job.yml --workspace-name "mlw-dev-mlops" --resource-group "rg-dev-mlops" | jq '.name' | tr -d '"')
+        echo $JOB_NAME
         echo "::set-output name=modelname::$JOB_NAME"
     - name: output
       run: |
@@ -46,7 +47,7 @@ jobs:
     - name: Model registration 
       run: |
         JOB_NAME=${{ needs.train.outputs.modelname }}
-        az ml model create --name "diabetes-model" --type "mlflow_model" --path "azureml://jobs/${JOB_NAME}/outputs/artifacts/model" --workspace-name "mlw-dev-mlops" --resource-group "rg-dev-mlops"
+        az ml model create --name "diabetes-model" --type "mlflow_model" --path "azureml://jobs/${JOB_NAME}/outputs/artifacts/model"
   deploy:
     runs-on: ubuntu-latest
     environment:
